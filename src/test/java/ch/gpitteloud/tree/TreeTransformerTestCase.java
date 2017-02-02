@@ -1,13 +1,13 @@
 package ch.gpitteloud.tree;
 
-import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 /**
  * Tests for{@link TreeTransformer}
@@ -16,42 +16,32 @@ import static org.junit.Assert.*;
  */
 public class TreeTransformerTestCase {
 
-    private static final Logger logger = Logger.getLogger(TreeTransformerTestCase.class);
+    private TreeTransformer<SampleNode, OtherNode> transformer = new TreeTransformer<>(
+            new TreeNode.Resolver<SampleNode>(), new TreeNode.Resolver<OtherNode>());
 
     @Test
     public void createNullRootSource() throws Exception {
+
         @SuppressWarnings("unchecked")
-        ParentChildResolver<Object> sourceResolver = createMock(ParentChildResolver.class);
+        ParentChildResolver<Object> sourceResolver = mock(ParentChildResolver.class);
         @SuppressWarnings("unchecked")
-        ParentChildResolver<Object> targetResolver = createMock(ParentChildResolver.class);
+        ParentChildResolver<Object> targetResolver = mock(ParentChildResolver.class);
         @SuppressWarnings("unchecked")
-        NodeMapper<Object, Object> mapper = createMock(NodeMapper.class);
-        replay(sourceResolver, targetResolver, mapper);
+        NodeMapper<Object, Object> mapper = mock(NodeMapper.class);
 
         TreeTransformer<Object, Object> transformer = new TreeTransformer<>(sourceResolver,
                 targetResolver);
         assertNull(transformer.create(null, mapper));
 
-        verify(sourceResolver, targetResolver, mapper);
+        verifyNoMoreInteractions(sourceResolver, targetResolver, mapper);
     }
 
     @Test
     public void createBasic() throws Exception {
-        SampleNode rootSource = new SampleNode("1");
-        rootSource.addChild(new SampleNode("10"));
-        rootSource.addChild(new SampleNode("11"));
-
-        rootSource.getChildAt(0).addChild(new SampleNode("100"));
-        rootSource.getChildAt(0).addChild(new SampleNode("101"));
-
-        rootSource.getChildAt(1).addChild(new SampleNode("110"));
-        rootSource.getChildAt(1).addChild(new SampleNode("111"));
-        rootSource.getChildAt(1).addChild(new SampleNode("112"));
-
-        rootSource.getChildAt(1).getChildAt(2).addChild(new SampleNode("1120"));
-
-        TreeTransformer<SampleNode, OtherNode> transformer = new TreeTransformer<>(
-                new TreeNode.Resolver<SampleNode>(), new TreeNode.Resolver<OtherNode>());
+        SampleNode rootSource = SampleNode.createTree("1", "10", "11");
+        rootSource.getChildAt(0).createChildren("100", "101");
+        rootSource.getChildAt(1).createChildren("110", "111", "112");
+        rootSource.getChildAt(1).getChildAt(2).createChildren("1120");
 
         OtherNode result = transformer.create(rootSource,
                 sourceNode -> new OtherNode(Integer.parseInt(sourceNode.getValue())));
@@ -92,21 +82,10 @@ public class TreeTransformerTestCase {
 
     @Test
     public void createSkipChildren() throws Exception {
-        SampleNode rootSource = new SampleNode("1");
-        rootSource.addChild(new SampleNode("10"));
-        rootSource.addChild(new SampleNode("11"));
-
-        rootSource.getChildAt(0).addChild(new SampleNode("100"));
-        rootSource.getChildAt(0).addChild(new SampleNode("101"));
-
-        rootSource.getChildAt(1).addChild(new SampleNode("110"));
-        rootSource.getChildAt(1).addChild(new SampleNode("111"));
-        rootSource.getChildAt(1).addChild(new SampleNode("112"));
-
-        rootSource.getChildAt(1).getChildAt(2).addChild(new SampleNode("1120"));
-
-        TreeTransformer<SampleNode, OtherNode> transformer = new TreeTransformer<>(
-                new TreeNode.Resolver<SampleNode>(), new TreeNode.Resolver<OtherNode>());
+        SampleNode rootSource = SampleNode.createTree("1", "10", "11");
+        rootSource.getChildAt(0).createChildren("100", "101");
+        rootSource.getChildAt(1).createChildren("110", "111", "112");
+        rootSource.getChildAt(1).getChildAt(2).createChildren("1120");
 
         OtherNode result = transformer.create(rootSource, sourceNode -> {
             if (sourceNode.getValue().equals("11")) {
@@ -133,29 +112,15 @@ public class TreeTransformerTestCase {
 
     @Test
     public void updateNonNullTargetRootNode() throws Exception {
+        SampleNode rootSource = SampleNode.createTree("1", "10", "11");
+        rootSource.getChildAt(0).createChildren("100", "101");
+        rootSource.getChildAt(1).createChildren("110", "111", "112");
+        rootSource.getChildAt(1).getChildAt(2).createChildren("1120");
 
-        final SampleNode rootSource = new SampleNode("1");
-        rootSource.addChild(new SampleNode("10"));
-        rootSource.addChild(new SampleNode("11"));
-        rootSource.getChildAt(0).addChild(new SampleNode("100"));
-        rootSource.getChildAt(0).addChild(new SampleNode("101"));
-        rootSource.getChildAt(1).addChild(new SampleNode("110"));
-        rootSource.getChildAt(1).addChild(new SampleNode("111"));
-        rootSource.getChildAt(1).addChild(new SampleNode("112"));
-        rootSource.getChildAt(1).getChildAt(2).addChild(new SampleNode("1120"));
-
-        OtherNode rootTarget = new OtherNode(0);
-        rootTarget.addChild(new OtherNode(0));
-        rootTarget.addChild(new OtherNode(0));
-        rootTarget.getChildAt(0).addChild(new OtherNode(0));
-        rootTarget.getChildAt(0).addChild(new OtherNode(0));
-        rootTarget.getChildAt(1).addChild(new OtherNode(0));
-        rootTarget.getChildAt(1).addChild(new OtherNode(0));
-        rootTarget.getChildAt(1).addChild(new OtherNode(0));
-        rootTarget.getChildAt(1).getChildAt(2).addChild(new OtherNode(0));
-
-        TreeTransformer<SampleNode, OtherNode> transformer = new TreeTransformer<>(
-                new TreeNode.Resolver<SampleNode>(), new TreeNode.Resolver<OtherNode>());
+        OtherNode rootTarget = OtherNode.createTree(0, 0, 0);
+        rootTarget.getChildAt(0).createChildren(0, 0);
+        rootTarget.getChildAt(1).createChildren(0, 0, 0);
+        rootTarget.getChildAt(1).getChildAt(2).createChildren(0);
 
         class TestHandler implements NodeCallbackHandler<SampleNode, OtherNode> {
 
@@ -213,25 +178,14 @@ public class TreeTransformerTestCase {
 
     @Test
     public void updateOrCreate() throws Exception {
+        SampleNode rootSource = SampleNode.createTree("1", "10", "11");
+        rootSource.getChildAt(0).createChildren("100", "101");
+        rootSource.getChildAt(1).createChildren("110", "111", "112");
+        rootSource.getChildAt(1).getChildAt(2).createChildren("1120");
 
-        final SampleNode rootSource = new SampleNode("1");
-        rootSource.addChild(new SampleNode("10"));
-        rootSource.addChild(new SampleNode("11"));
-        rootSource.getChildAt(0).addChild(new SampleNode("100"));
-        rootSource.getChildAt(0).addChild(new SampleNode("101"));
-        rootSource.getChildAt(1).addChild(new SampleNode("110"));
-        rootSource.getChildAt(1).addChild(new SampleNode("111"));
-        rootSource.getChildAt(1).addChild(new SampleNode("112"));
-        rootSource.getChildAt(1).getChildAt(2).addChild(new SampleNode("1120"));
-
-        OtherNode rootTarget = new OtherNode(0);
-        rootTarget.addChild(new OtherNode(0));
-        rootTarget.getChildAt(0).addChild(new OtherNode(0));
-        rootTarget.getChildAt(0).addChild(new OtherNode(0));
+        OtherNode rootTarget = OtherNode.createTree(0, 0);
+        rootTarget.getChildAt(0).createChildren(0, 0);
         // will create branch 11 in OtherNode
-
-        TreeTransformer<SampleNode, OtherNode> transformer = new TreeTransformer<>(
-                new TreeNode.Resolver<SampleNode>(), new TreeNode.Resolver<OtherNode>());
 
         class TestHandler implements NodeCallbackHandler<SampleNode, OtherNode> {
 
@@ -299,41 +253,15 @@ public class TreeTransformerTestCase {
     @Test
     public void updateOrCreateMultiNodes() throws Exception {
 
-        final SampleNode rootSource = new SampleNode("1");
-        Tree<SampleNode> sourceTree = new Tree<>(rootSource);
-        rootSource.addChild(new SampleNode("10"));
-        rootSource.getChildAt(0).addChild(new SampleNode("100"));
-        rootSource.getChildAt(0).addChild(new SampleNode("101"));
+        SampleNode rootSource = SampleNode.createTree("1", "10", "11");
+        rootSource.getChildAt(0).createChildren("100", "101");
+        rootSource.getChildAt(1).createChildren("110", "111", "112", "113", "114");
+        rootSource.getChildAt(1).getChildAt(2).createChildren("1120");
 
-        rootSource.addChild(new SampleNode("11"));
-        rootSource.getChildAt(1).addChild(new SampleNode("110"));
-        rootSource.getChildAt(1).addChild(new SampleNode("111"));
-        // add 3 other nodes for node 112
-        rootSource.getChildAt(1).addChild(new SampleNode("112"));
-        sourceTree.getNodeFromPath(new int[] { 1, 2 }).addChild(new SampleNode("1120"));
-        rootSource.getChildAt(1).addChild(new SampleNode("113"));
-        rootSource.getChildAt(1).addChild(new SampleNode("114"));
-
-        OtherNode rootTarget = new OtherNode(0);
-        Tree<OtherNode> targetTree = new Tree<>(rootTarget);
-        rootTarget.addChild(new OtherNode(0));
-        rootTarget.getChildAt(0).addChild(new OtherNode(0));
-        rootTarget.getChildAt(0).addChild(new OtherNode(0));
-
-        rootTarget.addChild(new OtherNode(0));
-        rootTarget.getChildAt(1).addChild(new OtherNode(0));
-        rootTarget.getChildAt(1).addChild(new OtherNode(0));
-        rootTarget.getChildAt(1).addChild(new OtherNode(0));
-        targetTree.getNodeFromPath(new int[] { 1, 2 }).addChild(new OtherNode(0));
-        rootTarget.getChildAt(1).addChild(new OtherNode(0));
-        rootTarget.getChildAt(1).addChild(new OtherNode(0));
-
-        if (logger.isInfoEnabled()) {
-            logger.info("Target tree before update: " + targetTree);
-        }
-
-        TreeTransformer<SampleNode, OtherNode> transformer = new TreeTransformer<>(
-                new TreeNode.Resolver<SampleNode>(), new TreeNode.Resolver<OtherNode>());
+        OtherNode rootTarget = OtherNode.createTree(0, 0, 0);
+        rootTarget.getChildAt(0).createChildren(0, 0);
+        rootTarget.getChildAt(1).createChildren(0, 0, 0, 0, 0);
+        rootTarget.getChildAt(1).getChildAt(2).createChildren(0);
 
         class TestHandler implements MultiNodesCallbackHandler<SampleNode, OtherNode> {
 
@@ -386,13 +314,6 @@ public class TreeTransformerTestCase {
 
         TestHandler handler = new TestHandler();
         transformer.update(rootSource, rootTarget, handler);
-
-        if (logger.isInfoEnabled()) {
-            logger.info("source tree after update: " + sourceTree);
-        }
-        if (logger.isInfoEnabled()) {
-            logger.info("target tree after update: " + targetTree);
-        }
 
         // target node has 16 nodes (without root) after update
         // but we did not visit the child (1120) of each added 112 node (900112, 990112, 999112)
@@ -483,12 +404,6 @@ public class TreeTransformerTestCase {
             }
             sourceTree.getNodeFromPath(path).addChild(new SampleNode(val.toString()));
         }
-        if (logger.isInfoEnabled()) {
-            logger.info("source tree: " + sourceTree);
-        }
-
-        TreeTransformer<SampleNode, OtherNode> transformer = new TreeTransformer<>(
-                new TreeNode.Resolver<SampleNode>(), new TreeNode.Resolver<OtherNode>());
 
         class TestHandler implements MultiNodesCallbackHandler<SampleNode, OtherNode> {
 
@@ -507,10 +422,6 @@ public class TreeTransformerTestCase {
         Tree<OtherNode> targetTree = new Tree<>(targetRoot);
 
         transformer.update(sourceRoot, targetRoot, new TestHandler());
-
-        if (logger.isInfoEnabled()) {
-            logger.info("target tree after update: " + targetTree);
-        }
 
         // every node is duplicated
         // the values in children of 2 branches are identical (they are based on the same unique SampleNode value)
@@ -536,24 +447,13 @@ public class TreeTransformerTestCase {
 
     @Test
     public void notRoot() throws Exception {
-        SampleNode root = new SampleNode("root");
-        SampleNode c0 = new SampleNode("10");
-        SampleNode c1 = new SampleNode("11");
-        SampleNode c2 = new SampleNode("12");
-        root.addChild(c0);
-        root.addChild(c1);
-        root.addChild(c2);
-        c1.addChild(new SampleNode("110"));
-        c1.addChild(new SampleNode("111"));
-        c1.addChild(new SampleNode("112"));
-        c1.getChildAt(0).addChild(new SampleNode("1100"));
-        c1.getChildAt(1).addChild(new SampleNode("1110"));
-
-        c0.addChild(new SampleNode("100"));
-        c2.addChild(new SampleNode("120"));
-
-        TreeTransformer<SampleNode, OtherNode> transformer = new TreeTransformer<>(
-                new TreeNode.Resolver<SampleNode>(), new TreeNode.Resolver<OtherNode>());
+        SampleNode root = SampleNode.createTree("root", "10", "11", "12");
+        root.getChildAt(0).createChildren("100");
+        SampleNode c1 = root.getChildAt(1);
+        c1.createChildren("110", "111", "112");
+        c1.getChildAt(0).createChildren("1100");
+        c1.getChildAt(1).createChildren("1110");
+        root.getChildAt(2).createChildren("120");
 
         OtherNode result = transformer.create(c1, sourceNode -> new OtherNode(Integer.parseInt(sourceNode.getValue())));
 
@@ -589,6 +489,18 @@ public class TreeTransformerTestCase {
         @Override
         public String toString() {
             return "OtherNode(val=" + Integer.toString(value) + ")";
+        }
+
+        static OtherNode createTree(int rootValue, int... childrenValues) {
+            OtherNode root = new OtherNode(rootValue);
+            root.createChildren(childrenValues);
+            return root;
+        }
+
+        void createChildren(int... childrenValues) {
+            for (int childValue : childrenValues) {
+                addChild(new OtherNode(childValue));
+            }
         }
 
     }

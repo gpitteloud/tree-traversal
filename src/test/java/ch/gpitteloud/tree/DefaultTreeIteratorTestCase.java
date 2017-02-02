@@ -1,11 +1,13 @@
 package ch.gpitteloud.tree;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import static ch.gpitteloud.tree.ExplorationMode.BFS;
+import static ch.gpitteloud.tree.ExplorationMode.DFS;
 import static org.junit.Assert.*;
 
 /**
@@ -15,9 +17,25 @@ import static org.junit.Assert.*;
  */
 public class DefaultTreeIteratorTestCase {
 
+    private SampleNode root = new SampleNode("root");
+    private SampleNode c0 = new SampleNode("c0");
+    private SampleNode c1 = new SampleNode("c1");
+    private SampleNode c10 = new SampleNode("c10");
+    private SampleNode c11 = new SampleNode("c11");
+    private SampleNode c00 = new SampleNode("c10");
+    private SampleNode c01 = new SampleNode("c11");
+
+    @Before
+    public void setUp() throws Exception {
+        root.addAll(c0, c1);
+        c0.addAll(c00, c01);
+        c1.addAll(c10, c11);
+    }
+
     @Test
     public void emptyIterator() throws Exception {
-        DefaultTreeIterator<SampleNode> it = new DefaultTreeIterator<>(BFS, (SampleNode) null, new TreeNode.Resolver<>());
+        DefaultTreeIterator<SampleNode> it = new DefaultTreeIterator<>(BFS, (SampleNode) null,
+                new TreeNode.Resolver<>());
         assertFalse(it.hasNext());
         try {
             it.next();
@@ -28,48 +46,32 @@ public class DefaultTreeIteratorTestCase {
     }
 
     @Test
-    public void simpleIteration() throws Exception {
-        SampleNode root = new SampleNode("root");
-        SampleNode c0 = new SampleNode("c0");
-        root.addChild(c0);
-        SampleNode c1 = new SampleNode("c1");
-        root.addChild(c1);
-
+    public void bfs() throws Exception {
         DefaultTreeIterator<SampleNode> it = new DefaultTreeIterator<>(BFS, root, new TreeNode.Resolver<>());
-        assertTrue(it.hasNext());
-        assertSame(root, it.next());
-        assertTrue(it.hasNext());
-        assertSame(c0, it.next());
-        assertTrue(it.hasNext());
-        assertSame(c1, it.next());
-        assertFalse(it.hasNext());
+        assertIterationOrder(it, root, c0, c1, c00, c01, c10, c11);
+    }
+
+    @Test
+    public void dfs() throws Exception {
+        DefaultTreeIterator<SampleNode> it = new DefaultTreeIterator<>(DFS, root, new TreeNode.Resolver<>());
+        assertIterationOrder(it, root, c0, c00, c01, c1, c10, c11);
+    }
+
+    private void assertIterationOrder(Iterator<SampleNode> i, SampleNode... expectedNodes) {
+        for (SampleNode node : expectedNodes) {
+            assertTrue(i.hasNext());
+            assertSame(node, i.next());
+        }
+        assertFalse(i.hasNext());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void remove_withoutNext() throws Exception {
+        root.iterator().remove();
     }
 
     @Test
     public void remove() throws Exception {
-        SampleNode root = new SampleNode("root");
-        SampleNode c0 = new SampleNode("c0");
-        root.addChild(c0);
-        SampleNode c1 = new SampleNode("c1");
-        root.addChild(c1);
-
-        SampleNode c00 = new SampleNode("c00");
-        c0.addChild(c00);
-        SampleNode c01 = new SampleNode("c01");
-        c0.addChild(c01);
-
-        SampleNode c10 = new SampleNode("c10");
-        c1.addChild(c10);
-        SampleNode c11 = new SampleNode("c11");
-        c1.addChild(c11);
-
-        try {
-            root.iterator().remove();
-            fail("remove without next");
-        } catch (IllegalStateException e) {
-            // OK
-        }
-
         int count = 0;
         for (Iterator<SampleNode> it = root.iterator(); it.hasNext(); count++) {
             SampleNode node = it.next();
@@ -87,31 +89,13 @@ public class DefaultTreeIteratorTestCase {
         assertTrue(c1.getChildren().contains(c11));
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void skipChildren_withoutNext() throws Exception {
+        root.iterator().skipChildren();
+    }
+
     @Test
-    public void removeFromIteration() throws Exception {
-        SampleNode root = new SampleNode("root");
-        SampleNode c0 = new SampleNode("c0");
-        root.addChild(c0);
-        SampleNode c1 = new SampleNode("c1");
-        root.addChild(c1);
-
-        SampleNode c00 = new SampleNode("c00");
-        c0.addChild(c00);
-        SampleNode c01 = new SampleNode("c01");
-        c0.addChild(c01);
-
-        SampleNode c10 = new SampleNode("c10");
-        c1.addChild(c10);
-        SampleNode c11 = new SampleNode("c11");
-        c1.addChild(c11);
-
-        try {
-            root.iterator().skipChildren();
-            fail("skipChildren without next");
-        } catch (IllegalStateException e) {
-            // OK
-        }
-
+    public void skipChildren() throws Exception {
         int count = 0;
         for (TreeIterator<SampleNode> it = root.iterator(); it.hasNext(); count++) {
             SampleNode node = it.next();

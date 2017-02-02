@@ -135,8 +135,7 @@ public class DfsTreeSpliteratorTestCase {
         consumeOne(s4);
 
         consumeAll(s0);
-        assertFalse(s0.tryAdvance(n -> {
-        }));
+        assertFalse(s0.tryAdvance(n -> {}));
         assertNull(s0.trySplit());
 
         consumeAll(s1);

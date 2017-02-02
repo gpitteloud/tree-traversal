@@ -2,10 +2,7 @@ package ch.gpitteloud.tree;
 
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.ListIterator;
+import java.util.*;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.*;
@@ -17,15 +14,9 @@ import static org.junit.Assert.*;
  */
 public class TreeNodeTestCase {
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void invalidParametertypeFails() throws Exception {
-        try {
-            new WrongNode();
-            fail("invalid param type argument");
-        } catch (IllegalArgumentException e) {
-            // OK
-        }
-
+        new WrongNode();
     }
 
     @Test
@@ -33,59 +24,63 @@ public class TreeNodeTestCase {
         SampleNodeSubclass subnode = new SampleNodeSubclass("value", 12);
         assertEquals("value", subnode.getValue());
         assertEquals(12, subnode.otherValue);
-
-        ConcreteNode n2 = new ConcreteNode();
-        SubConcreteNode n3 = new SubConcreteNode();
-
-        Tree<ConcreteNode> tree = new Tree<>(n2);
-        tree.getRoot().addChild(n3);
     }
 
     @Test
-    public void setParentRootNodeFails() throws Exception {
+    public void subclasses() throws Exception {
+        ConcreteNode root = new ConcreteNode();
+        SubConcreteNode node = new SubConcreteNode();
+
+        Tree<ConcreteNode> tree = new Tree<>(root);
+        tree.getRoot().addChild(node);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void setParent_rootNodeFails() throws Exception {
         SampleNode root = new SampleNode();
         root.setRoot();
 
         SampleNode parent = new SampleNode();
-        try {
-            root.setParent(parent);
-        } catch (IllegalStateException e) {// ok
-        }
+        root.setParent(parent);
     }
 
     @Test
-    public void addNodesHierarchyToATree() throws Exception {
+    public void getPath_1Level() throws Exception {
         SampleNode node = new SampleNode();
         SampleNode child1 = new SampleNode();
         SampleNode child2 = new SampleNode();
-        node.addChild(child1);
-        node.addChild(child2);
+        node.addAll(child1, child2);
+
         int[] c1path = child1.getPath();
         int[] c2path = child2.getPath();
         assertEquals(1, c1path.length);
         assertEquals(0, c1path[0]);
         assertEquals(1, c2path.length);
         assertEquals(1, c2path[0]);
+    }
 
+    @Test
+    public void getPath_manyLevels() throws Exception {
         SampleNode root = new SampleNode();
-        int index = 2;
-        Tree<SampleNode> tree = new Tree<>(root);
-        root.addChild(new SampleNode());
-        root.addChild(new SampleNode());
-        tree.getRoot().addChild(node);
+        SampleNode node = new SampleNode();
+        root.addAll(new SampleNode(), new SampleNode(), node);
 
-        assertEquals(index, node.getIndex());
+        SampleNode child1 = new SampleNode();
+        SampleNode child2 = new SampleNode();
+        node.addAll(child1, child2);
+
+        assertEquals(2, node.getIndex());
         assertEquals(root, node.getParent());
         int[] nodePath = node.getPath();
         assertEquals(1, nodePath.length);
-        assertEquals(index, nodePath[0]);
+        assertEquals(2, nodePath[0]);
 
-        c1path = child1.getPath();
-        c2path = child2.getPath();
+        int[] c1path = child1.getPath();
+        int[] c2path = child2.getPath();
         assertEquals(2, c1path.length);
         assertEquals(2, c2path.length);
-        assertEquals(index, c1path[0]);
-        assertEquals(index, c2path[0]);
+        assertEquals(2, c1path[0]);
+        assertEquals(2, c2path[0]);
         assertEquals(0, c1path[1]);
         assertEquals(1, c2path[1]);
     }
@@ -96,24 +91,14 @@ public class TreeNodeTestCase {
         SampleNode node = new SampleNode(remove);
         SampleNode child1 = new SampleNode("c1");
         SampleNode child2 = new SampleNode("c2");
-        node.addChild(child1);
-        node.addChild(child2);
-        assertArrayEquals(new int[] {}, node.getPath());
-        assertArrayEquals(new int[] { 0 }, child1.getPath());
-        assertArrayEquals(new int[] { 1 }, child2.getPath());
+        node.addAll(child1, child2);
 
         SampleNode root = new SampleNode("root");
-        Tree<SampleNode> tree = new Tree<>(root);
-        root.addChild(new SampleNode("s1"));
-        root.addChild(new SampleNode("s2"));
-        tree.getRoot().addChild(node);
-        assertArrayEquals(new int[] { 2 }, node.getPath());
-        assertArrayEquals(new int[] { 2, 0 }, child1.getPath());
-        assertArrayEquals(new int[] { 2, 1 }, child2.getPath());
+        root.addAll(new SampleNode("s1"), new SampleNode("s2"), node);
 
         int counter = 0;
-        HashSet<String> names = new HashSet<>();
-        for (Iterator<SampleNode> i = tree.iterator(); i.hasNext();) {
+        Collection<String> names = new ArrayList<>();
+        for (Iterator<SampleNode> i = new Tree<>(root).iterator(); i.hasNext(); ) {
             SampleNode next = i.next();
             names.add(next.getValue());
             counter++;
@@ -122,64 +107,47 @@ public class TreeNodeTestCase {
             }
         }
         assertEquals(4, counter);
-        assertTrue(names.contains("root"));
-        assertTrue(names.contains(remove));
-        assertTrue(names.contains("s1"));
-        assertTrue(names.contains("s2"));
+        assertThat(names).containsOnly("root", remove, "s1", "s2");
 
-        assertArrayEquals(new int[] {}, node.getPath());
-        assertArrayEquals(new int[] { 0 }, child1.getPath());
-        assertArrayEquals(new int[] { 1 }, child2.getPath());
+        // node becomes root of its own tree
+        assertNull(node.getParent());
+        assertArrayEquals(new int[]{}, node.getPath());
+        assertArrayEquals(new int[]{0}, child1.getPath());
+        assertArrayEquals(new int[]{1}, child2.getPath());
     }
 
     @Test
     public void deepTreeGetPath() throws Exception {
-        SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(new SampleNode("c1"));
-        root.addChild(new SampleNode("c2"));
+        SampleNode root = SampleNode.createTree("root", "c0", "c1", "c2");
 
         SampleNode c1 = root.getChildAt(1);
-        c1.addChild(new SampleNode("c10"));
-        c1.addChild(new SampleNode("c11"));
-        c1.addChild(new SampleNode("c12"));
-        c1.addChild(new SampleNode("c13"));
+        c1.createChildren("c10", "c11", "c12", "c13");
 
         SampleNode c12 = c1.getChildAt(2);
-        c12.addChild(new SampleNode("c120"));
-        c12.addChild(new SampleNode("c121"));
+        c12.createChildren("c120", "c121");
 
         SampleNode c120 = c12.getChildAt(0);
-        c120.addChild(new SampleNode("c1200"));
-        c120.addChild(new SampleNode("c1201"));
-        c120.addChild(new SampleNode("c1202"));
-        c120.addChild(new SampleNode("c1203"));
-        c120.addChild(new SampleNode("c1204"));
-        c120.addChild(new SampleNode("c1205"));
+        c120.createChildren("c1200", "c1201", "c1202", "c1203", "c1204", "c1205");
 
         SampleNode c1203 = c120.getChildAt(3);
-        c1203.addChild(new SampleNode("c12030"));
-        c1203.addChild(new SampleNode("c12031"));
-        c1203.addChild(new SampleNode("c12032"));
-        c1203.addChild(new SampleNode("c12033"));
+        c1203.createChildren("c12030", "c12031", "c12032", "c12033");
 
         SampleNode c12033 = c1203.getChildAt(3);
-        c12033.addChild(new SampleNode("c120330"));
-        c12033.addChild(new SampleNode("c120331"));
+        c12033.createChildren("c120330", "c120331");
 
-        assertArrayEquals(new int[] { 1, 2, 0, 3, 3, 0 }, c12033.getChildAt(0).getPath());
-        assertArrayEquals(new int[] { 1, 2, 0, 3, 3, 1 }, c12033.getChildAt(1).getPath());
+        assertArrayEquals(new int[]{1, 2, 0, 3, 3, 0}, c12033.getChildAt(0).getPath());
+        assertArrayEquals(new int[]{1, 2, 0, 3, 3, 1}, c12033.getChildAt(1).getPath());
 
-        assertArrayEquals(new int[] { 1, 2, 0, 3, 3 }, c12033.getPath());
-        assertArrayEquals(new int[] { 1, 2, 0, 3 }, c1203.getPath());
-        assertArrayEquals(new int[] { 1, 2, 0 }, c120.getPath());
-        assertArrayEquals(new int[] { 1, 2 }, c12.getPath());
-        assertArrayEquals(new int[] { 1 }, c1.getPath());
-        assertArrayEquals(new int[] {}, root.getPath());
+        assertArrayEquals(new int[]{1, 2, 0, 3, 3}, c12033.getPath());
+        assertArrayEquals(new int[]{1, 2, 0, 3}, c1203.getPath());
+        assertArrayEquals(new int[]{1, 2, 0}, c120.getPath());
+        assertArrayEquals(new int[]{1, 2}, c12.getPath());
+        assertArrayEquals(new int[]{1}, c1.getPath());
+        assertArrayEquals(new int[]{}, root.getPath());
     }
 
     @Test
-    public void getRootNodeNotInATree() throws Exception {
+    public void getRootNode_NotInATree() throws Exception {
         SampleNode c0 = new SampleNode("c01");
         SampleNode c1 = new SampleNode("c1");
         c0.addChild(c1);
@@ -187,7 +155,7 @@ public class TreeNodeTestCase {
     }
 
     @Test
-    public void getRootNodeInATree() throws Exception {
+    public void getRootNode_InATree() throws Exception {
         SampleNode root = new SampleNode("root");
         new Tree<>(root);
         SampleNode c0 = new SampleNode("c0");
@@ -204,7 +172,6 @@ public class TreeNodeTestCase {
         assertSame(root, root.getRootNode());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void moveChildNodeToAnotherChildrenListWithoutRemovedFails() throws Exception {
         SampleNode c0 = new SampleNode("c0");
@@ -227,6 +194,7 @@ public class TreeNodeTestCase {
         SampleNode child = new SampleNode("child");
         assertTrue(c0.getChildren().add(child));
         assertFalse(c0.getChildren().add(child));
+        assertThat(c0.getChildren()).hasSize(1);
     }
 
     @Test
@@ -240,9 +208,8 @@ public class TreeNodeTestCase {
         c1.addChild(child);
 
         assertEquals(c1, child.getParent());
-        assertEquals(0, c0.getChildren().size());
-        assertEquals(1, c1.getChildren().size());
-        assertEquals(child, c1.getChildAt(0));
+        assertThat(c0.getChildren()).isEmpty();
+        assertThat(c1.getChildren()).hasSize(1).contains(child);
     }
 
     @Test
@@ -269,39 +236,24 @@ public class TreeNodeTestCase {
     @Test
     public void getDepth() throws Exception {
         SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(new SampleNode("c1"));
-        root.addChild(new SampleNode("c2"));
+        root.createChildren("c0", "c1", "c2");
 
         SampleNode c1 = root.getChildAt(1);
-        c1.addChild(new SampleNode("c10"));
-        c1.addChild(new SampleNode("c11"));
-        c1.addChild(new SampleNode("c12"));
-        c1.addChild(new SampleNode("c13"));
+        c1.createChildren("c10", "c11", "c12", "c13");
 
         SampleNode c12 = c1.getChildAt(2);
-        c12.addChild(new SampleNode("c120"));
-        c12.addChild(new SampleNode("c121"));
+        c12.createChildren("c120", "c121");
 
         SampleNode c120 = c12.getChildAt(0);
-        c120.addChild(new SampleNode("c1200"));
-        c120.addChild(new SampleNode("c1201"));
-        c120.addChild(new SampleNode("c1202"));
-        c120.addChild(new SampleNode("c1203"));
-        c120.addChild(new SampleNode("c1204"));
-        c120.addChild(new SampleNode("c1205"));
+        c120.createChildren("c1200", "c1201", "c1202", "c1203", "c1204", "c1205");
 
         SampleNode c1203 = c120.getChildAt(3);
-        c1203.addChild(new SampleNode("c12030"));
-        c1203.addChild(new SampleNode("c12031"));
-        c1203.addChild(new SampleNode("c12032"));
-        c1203.addChild(new SampleNode("c12033"));
+        c1203.createChildren("c12030", "c12031", "c12032", "c12033");
 
         SampleNode c12033 = c1203.getChildAt(3);
         SampleNode c120330 = new SampleNode("c120330");
         SampleNode c120331 = new SampleNode("c120331");
-        c12033.addChild(c120330);
-        c12033.addChild(c120331);
+        c12033.addAll(c12033, c120331);
 
         assertEquals(6, c120330.getDepth());
         assertEquals(6, c120331.getDepth());
@@ -325,7 +277,8 @@ public class TreeNodeTestCase {
         assertThrowsIllegalArgumentException(
                 () -> parent.getChildren().addAll(Arrays.asList(new SampleNodeCannotAdd(), new SampleNodeCannotAdd())));
         assertThrowsIllegalArgumentException(
-                () -> parent.getChildren().addAll(0, Arrays.asList(new SampleNodeCannotAdd(), new SampleNodeCannotAdd())));
+                () -> parent.getChildren()
+                        .addAll(0, Arrays.asList(new SampleNodeCannotAdd(), new SampleNodeCannotAdd())));
         assertThrowsIllegalArgumentException(() -> {
             ListIterator<SampleNodeCannotAdd> it = parent.getChildren().listIterator();
             it.add(new SampleNodeCannotAdd());

@@ -42,4 +42,23 @@ class SampleNode extends TreeNode<SampleNode> {
     public String toString() {
         return "SampleNode(" + value + ")";
     }
+
+    void addAll(SampleNode... children) {
+        for (SampleNode child : children) {
+            addChild(child);
+        }
+    }
+
+    static SampleNode createTree(String rootName, String... childrenNames) {
+        SampleNode root = new SampleNode(rootName);
+        root.createChildren(childrenNames);
+        return root;
+    }
+
+    void createChildren(String... childrenNames) {
+        for (String childName : childrenNames) {
+            addChild(new SampleNode(childName));
+        }
+    }
+
 }

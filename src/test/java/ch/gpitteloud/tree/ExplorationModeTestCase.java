@@ -4,8 +4,9 @@ import org.junit.Test;
 
 import java.util.Iterator;
 
+import static ch.gpitteloud.tree.ExplorationMode.DFS;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Tests the SearchMode algorithms.
@@ -14,272 +15,115 @@ import static org.junit.Assert.assertSame;
  */
 public class ExplorationModeTestCase {
 
-    static class TestNode extends TreeNode<TestNode> {
-
-        private static final long serialVersionUID = 1L;
-        private final String value;
-
-        TestNode(String name) {
-            super(TestNode.class);
-            this.value = name;
-        }
-
-        /**
-         * @return return value
-         */
-        public String getValue() {
-            return this.value;
-        }
-
-    }
-
     @Test
     public void bfsRootOnly() throws Exception {
         String name = "root";
-        TestNode root = new TestNode(name);
-        Tree<TestNode> tree = new Tree<>(root);
+        SampleNode root = new SampleNode(name);
+        Tree<SampleNode> tree = new Tree<>(root);
 
-        int count = 0;
-        for (TestNode node : tree) {
-            assertSame(root, node);
-            count++;
-        }
-        assertEquals(1, count);
+        assertIterationOrder(tree.iterator(), name);
     }
 
     @Test
     public void bfsWithChildren() throws Exception {
         String name = "root";
-        TestNode root = new TestNode(name);
-        Tree<TestNode> tree = new Tree<>(root);
         String child1 = "child1";
         String child2 = "child2";
-        root.addChild(new TestNode(child1));
-        root.addChild(new TestNode(child2));
+        SampleNode root = SampleNode.createTree(name, child1, child2);
+        Tree<SampleNode> tree = new Tree<>(root);
 
-        int count = 0;
-        String[] expected = new String[] { name, child1, child2 };
-        for (TestNode node : tree) {
-            assertEquals(expected[count], node.getValue());
-            count++;
-        }
-        assertEquals(3, count);
-    }
-
-    @Test
-    public void bfsComplexTree() throws Exception {
-        String name = "root";
-        TestNode root = new TestNode(name);
-        Tree<TestNode> tree = new Tree<>(root);
-        String child1 = "child1";
-        String child11 = "child11";
-        String child12 = "child12";
-        String child13 = "child13";
-        String child111 = "child111";
-        String child112 = "child112";
-        String child121 = "child121";
-        String child1211 = "child1211";
-        String child131 = "child131";
-        String child1311 = "child1311";
-        String child13111 = "child13111";
-        String child13112 = "child13112";
-
-        String child2 = "child2";
-        String child21 = "child21";
-        String child22 = "child22";
-        String child211 = "child211";
-        String child2111 = "child2111";
-        String child21111 = "child21111";
-        String child21112 = "child21112";
-        String child21113 = "child21113";
-        String child21114 = "child21114";
-        String child211141 = "child211141";
-
-        TestNode nchild1 = new TestNode(child1);
-        TestNode nchild11 = new TestNode(child11);
-        TestNode nchild12 = new TestNode(child12);
-        TestNode nchild13 = new TestNode(child13);
-        TestNode nchild111 = new TestNode(child111);
-        TestNode nchild112 = new TestNode(child112);
-        TestNode nchild121 = new TestNode(child121);
-        TestNode nchild1211 = new TestNode(child1211);
-        TestNode nchild131 = new TestNode(child131);
-        TestNode nchild1311 = new TestNode(child1311);
-        TestNode nchild13111 = new TestNode(child13111);
-        TestNode nchild13112 = new TestNode(child13112);
-
-        TestNode nchild2 = new TestNode(child2);
-        TestNode nchild21 = new TestNode(child21);
-        TestNode nchild22 = new TestNode(child22);
-        TestNode nchild211 = new TestNode(child211);
-        TestNode nchild2111 = new TestNode(child2111);
-        TestNode nchild21111 = new TestNode(child21111);
-        TestNode nchild21112 = new TestNode(child21112);
-        TestNode nchild21113 = new TestNode(child21113);
-        TestNode nchild21114 = new TestNode(child21114);
-        TestNode nchild211141 = new TestNode(child211141);
-
-        root.addChild(nchild1);
-        root.addChild(nchild2);
-        nchild1.addChild(nchild11);
-        nchild1.addChild(nchild12);
-        nchild1.addChild(nchild13);
-
-        nchild11.addChild(nchild111);
-        nchild11.addChild(nchild112);
-        nchild12.addChild(nchild121);
-        nchild121.addChild(nchild1211);
-        nchild13.addChild(nchild131);
-        nchild131.addChild(nchild1311);
-        nchild1311.addChild(nchild13111);
-        nchild1311.addChild(nchild13112);
-
-        nchild2.addChild(nchild21);
-        nchild2.addChild(nchild22);
-        nchild21.addChild(nchild211);
-        nchild211.addChild(nchild2111);
-        nchild2111.addChild(nchild21111);
-        nchild2111.addChild(nchild21112);
-        nchild2111.addChild(nchild21113);
-        nchild2111.addChild(nchild21114);
-        nchild21114.addChild(nchild211141);
-
-        int count = 0;
-        String[] expectedNames = new String[] { name, child1, child2, child11, child12, child13, child21, child22,
-                child111, child112, child121, child131, child211, child1211, child1311, child2111, child13111,
-                child13112, child21111, child21112, child21113, child21114, child211141 };
-        for (TestNode node : tree) {
-            assertEquals(expectedNames[count], node.getValue());
-            count++;
-        }
-        assertEquals(23, count);
-
+        assertIterationOrder(tree.iterator(), name, child1, child2);
     }
 
     @Test
     public void dfsRootOnly() throws Exception {
-        String name = "root";
-        TestNode root = new TestNode(name);
-        Tree<TestNode> tree = new Tree<>(root);
+        SampleNode root = new SampleNode("root");
+        Tree<SampleNode> tree = new Tree<>(root);
 
-        int count = 0;
-        for (Iterator<TestNode> it = tree.iterator(ExplorationMode.DFS); it.hasNext();) {
-            TestNode node = it.next();
-            assertSame(root, node);
-            count++;
-        }
-        assertEquals(1, count);
-
+        assertIterationOrder(tree.iterator(DFS), "root");
     }
 
     @Test
     public void dfsWithChildren() throws Exception {
         String name = "root";
-        TestNode root = new TestNode(name);
-        Tree<TestNode> tree = new Tree<>(root);
         String child1 = "child1";
         String child2 = "child2";
-        root.addChild(new TestNode(child1));
-        root.addChild(new TestNode(child2));
+        SampleNode root = SampleNode.createTree(name, child1, child2);
+        Tree<SampleNode> tree = new Tree<>(root);
 
-        int count = 0;
-        String[] expected = new String[] { name, child1, child2 };
-        for (Iterator<TestNode> it = tree.iterator(ExplorationMode.DFS); it.hasNext();) {
-            TestNode node = it.next();
-            assertEquals(expected[count], node.getValue());
-            count++;
-        }
-        assertEquals(3, count);
+        assertIterationOrder(tree.iterator(DFS), name, child1, child2);
+    }
+
+    @Test
+    public void bfsComplexTree() throws Exception {
+        Tree<SampleNode> tree = createLargeTree();
+
+        assertIterationOrder(tree.iterator(), "root", "child1", "child2", "child11", "child12", "child13", "child21",
+                "child22", "child111", "child112", "child121", "child131", "child211", "child1211", "child1311",
+                "child2111", "child13111", "child13112", "child21111", "child21112", "child21113", "child21114",
+                "child211141");
     }
 
     @Test
     public void dfsComplexTree() throws Exception {
-        String name = "root";
-        TestNode root = new TestNode(name);
-        Tree<TestNode> tree = new Tree<>(root);
-        String child1 = "child1";
-        String child11 = "child11";
-        String child12 = "child12";
-        String child13 = "child13";
-        String child111 = "child111";
-        String child112 = "child112";
-        String child121 = "child121";
-        String child1211 = "child1211";
-        String child131 = "child131";
-        String child1311 = "child1311";
-        String child13111 = "child13111";
-        String child13112 = "child13112";
+        Tree<SampleNode> tree = createLargeTree();
 
-        String child2 = "child2";
-        String child21 = "child21";
-        String child22 = "child22";
-        String child211 = "child211";
-        String child2111 = "child2111";
-        String child21111 = "child21111";
-        String child21112 = "child21112";
-        String child21113 = "child21113";
-        String child21114 = "child21114";
-        String child211141 = "child211141";
+        assertIterationOrder(tree.iterator(DFS), "root", "child1", "child11", "child111", "child112", "child12",
+                "child121", "child1211", "child13", "child131", "child1311", "child13111", "child13112", "child2",
+                "child21", "child211", "child2111", "child21111", "child21112", "child21113", "child21114",
+                "child211141",
+                "child22");
+    }
 
-        TestNode nchild1 = new TestNode(child1);
-        TestNode nchild11 = new TestNode(child11);
-        TestNode nchild12 = new TestNode(child12);
-        TestNode nchild13 = new TestNode(child13);
-        TestNode nchild111 = new TestNode(child111);
-        TestNode nchild112 = new TestNode(child112);
-        TestNode nchild121 = new TestNode(child121);
-        TestNode nchild1211 = new TestNode(child1211);
-        TestNode nchild131 = new TestNode(child131);
-        TestNode nchild1311 = new TestNode(child1311);
-        TestNode nchild13111 = new TestNode(child13111);
-        TestNode nchild13112 = new TestNode(child13112);
+    private Tree<SampleNode> createLargeTree() {
+        SampleNode root = new SampleNode("root");
 
-        TestNode nchild2 = new TestNode(child2);
-        TestNode nchild21 = new TestNode(child21);
-        TestNode nchild22 = new TestNode(child22);
-        TestNode nchild211 = new TestNode(child211);
-        TestNode nchild2111 = new TestNode(child2111);
-        TestNode nchild21111 = new TestNode(child21111);
-        TestNode nchild21112 = new TestNode(child21112);
-        TestNode nchild21113 = new TestNode(child21113);
-        TestNode nchild21114 = new TestNode(child21114);
-        TestNode nchild211141 = new TestNode(child211141);
+        SampleNode child1 = new SampleNode("child1");
+        SampleNode child11 = new SampleNode("child11");
+        SampleNode child12 = new SampleNode("child12");
+        SampleNode child13 = new SampleNode("child13");
+        SampleNode child111 = new SampleNode("child111");
+        SampleNode child112 = new SampleNode("child112");
+        SampleNode child121 = new SampleNode("child121");
+        SampleNode child1211 = new SampleNode("child1211");
+        SampleNode child131 = new SampleNode("child131");
+        SampleNode child1311 = new SampleNode("child1311");
+        SampleNode child13111 = new SampleNode("child13111");
+        SampleNode child13112 = new SampleNode("child13112");
 
-        root.addChild(nchild1);
-        nchild1.addChild(nchild11);
-        nchild1.addChild(nchild12);
-        nchild1.addChild(nchild13);
+        SampleNode child2 = new SampleNode("child2");
+        SampleNode child21 = new SampleNode("child21");
+        SampleNode child22 = new SampleNode("child22");
+        SampleNode child211 = new SampleNode("child211");
+        SampleNode child2111 = new SampleNode("child2111");
+        SampleNode child21111 = new SampleNode("child21111");
+        SampleNode child21112 = new SampleNode("child21112");
+        SampleNode child21113 = new SampleNode("child21113");
+        SampleNode child21114 = new SampleNode("child21114");
+        SampleNode child211141 = new SampleNode("child211141");
 
-        nchild11.addChild(nchild111);
-        nchild11.addChild(nchild112);
-        nchild12.addChild(nchild121);
-        nchild121.addChild(nchild1211);
-        nchild13.addChild(nchild131);
-        nchild131.addChild(nchild1311);
-        nchild1311.addChild(nchild13111);
-        nchild1311.addChild(nchild13112);
+        root.addAll(child1, child2);
+        child1.addAll(child11, child12, child13);
+        child11.addAll(child111, child112);
+        child12.addChild(child121);
+        child121.addChild(child1211);
+        child13.addChild(child131);
+        child131.addChild(child1311);
+        child1311.addAll(child13111, child13112);
+        child2.addAll(child21, child22);
+        child21.addChild(child211);
+        child211.addChild(child2111);
+        child2111.addAll(child21111, child21112, child21113, child21114);
+        child21114.addChild(child211141);
 
-        root.addChild(nchild2);
-        nchild2.addChild(nchild21);
-        nchild2.addChild(nchild22);
-        nchild21.addChild(nchild211);
-        nchild211.addChild(nchild2111);
-        nchild2111.addChild(nchild21111);
-        nchild2111.addChild(nchild21112);
-        nchild2111.addChild(nchild21113);
-        nchild2111.addChild(nchild21114);
-        nchild21114.addChild(nchild211141);
+        return new Tree<>(root);
+    }
 
-        int count = 0;
-        String[] expectedNames = new String[] { name, child1, child11, child111, child112, child12, child121,
-                child1211, child13, child131, child1311, child13111, child13112, child2, child21, child211, child2111,
-                child21111, child21112, child21113, child21114, child211141, child22 };
-        for (Iterator<TestNode> it = tree.iterator(ExplorationMode.DFS); it.hasNext();) {
-            TestNode node = it.next();
-            assertEquals(expectedNames[count], node.getValue());
-            count++;
+    private void assertIterationOrder(Iterator<SampleNode> it, String... nodes) {
+        int index = 0;
+        while (it.hasNext()) {
+            assertEquals(nodes[index++], it.next().getValue());
         }
-        assertEquals(23, count);
-
+        assertFalse(it.hasNext());
     }
 }

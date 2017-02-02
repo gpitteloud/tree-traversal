@@ -16,49 +16,51 @@ import static org.junit.Assert.*;
  */
 public class ChildrenListTestCase {
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void addNullFails() throws Exception {
         SampleNode root = new SampleNode("root");
-        try {
-            root.getChildren().add(null);
-            fail("add null should fail");
-        } catch (IllegalArgumentException e) {
-            // OK
-        }
+        root.getChildren().add(null);
     }
 
     @Test
     public void add() throws Exception {
         SampleNode parent = new SampleNode("parent");
-
         SampleNode child0 = new SampleNode("child0");
-        assertNull(child0.getParent());
-        assertEquals(0, child0.getPath().length);
-        assertEquals(-1, child0.getIndex());
-
         SampleNode child1 = new SampleNode("child1");
-        assertNull(child1.getParent());
-        assertEquals(0, child1.getPath().length);
-        assertEquals(-1, child1.getIndex());
+
+        verifyDisconnectedChild(child0);
+        verifyDisconnectedChild(child1);
 
         parent.getChildren().add(child0);
         parent.getChildren().add(child1);
 
-        verifyChildrenNodes(parent, child0,  child1);
+        verifyChildrenNodes(parent, child0, child1);
+    }
+
+    @Test
+    public void add_index() throws Exception {
+        SampleNode parent = new SampleNode("parent");
+        SampleNode child0 = new SampleNode("child0");
+        SampleNode child1 = new SampleNode("child1");
+        parent.addAll(child0, child1);
 
         SampleNode newChild = new SampleNode("newChild");
-        assertNull(newChild.getParent());
-        assertEquals(0, newChild.getPath().length);
-        assertEquals(-1, newChild.getIndex());
+        verifyDisconnectedChild(newChild);
         parent.getChildren().add(1, newChild);
 
         verifyChildrenNodes(parent, child0, newChild, child1);
     }
 
-    private void verifyChildrenNodes(SampleNode parent, SampleNode... children) {
+    private void verifyDisconnectedChild(SampleNode child0) {
+        assertNull(child0.getParent());
+        assertEquals(0, child0.getPath().length);
+        assertEquals(-1, child0.getIndex());
+    }
+
+    private void verifyChildrenNodes(SampleNode root, SampleNode... children) {
         int i = 0;
         for (SampleNode node : children) {
-            assertSame(parent, node.getParent());
+            assertSame(root, node.getParent());
             assertEquals(1, node.getPath().length);
             assertEquals(i, node.getPath()[0]);
             assertEquals(i++, node.getIndex());
@@ -73,9 +75,7 @@ public class ChildrenListTestCase {
         SampleNode ch4 = new SampleNode("ch4");
         Collection<SampleNode> nodes = Arrays.asList(ch1, ch2, ch3, ch4);
 
-        SampleNode p = new SampleNode("p");
-        p.getChildren().add(new SampleNode("o1"));
-        p.getChildren().add(new SampleNode("o2"));
+        SampleNode p = SampleNode.createTree("p", "o1", "o2");
 
         p.getChildren().addAll(nodes);
         assertEquals("o1", p.getChildren().get(0).getValue());
@@ -99,15 +99,12 @@ public class ChildrenListTestCase {
         SampleNode child2 = new SampleNode("child2");
         SampleNode child3 = new SampleNode("child3");
 
-        parent.getChildren().add(child0);
-        parent.getChildren().add(child1);
-        parent.getChildren().add(child2);
-        parent.getChildren().add(child3);
+        parent.addAll(child0,  child1,  child2, child3);
 
         assertEquals(4, parent.getChildren().size());
         assertFalse(parent.getChildren().remove(new SampleNode()));
         assertTrue(parent.getChildren().remove(child1));
-        assertNull(child1.getParent());
+        verifyDisconnectedChild(child1);
 
         assertEquals(3, parent.getChildren().size());
         assertTrue(parent.getChildren().contains(child0));
@@ -116,11 +113,23 @@ public class ChildrenListTestCase {
 
         assertEquals(child2, parent.getChildren().remove(1));
         assertEquals(2, parent.getChildren().size());
-        assertNull(child2.getParent());
+        verifyDisconnectedChild(child2);
+    }
+
+    @Test
+    public void clear() throws Exception {
+        SampleNode parent = new SampleNode("parent");
+        SampleNode child0 = new SampleNode("child0");
+        SampleNode child1 = new SampleNode("child1");
+        SampleNode child2 = new SampleNode("child2");
+
+        parent.addAll(child0, child1, child2);
 
         parent.getChildren().clear();
         assertEquals(0, parent.getChildren().size());
-        assertTrue(parent.getChildren().isEmpty());
+        verifyDisconnectedChild(child0);
+        verifyDisconnectedChild(child1);
+        verifyDisconnectedChild(child2);
     }
 
     @Test
@@ -131,10 +140,7 @@ public class ChildrenListTestCase {
         SampleNode child2 = new SampleNode("child2");
         SampleNode child3 = new SampleNode("child3");
 
-        parent.getChildren().add(child0);
-        parent.getChildren().add(child1);
-        parent.getChildren().add(child2);
-        parent.getChildren().add(child3);
+        parent.addAll(child0, child1, child2, child3);
 
         SampleNode c = new SampleNode("c");
         assertEquals(child2, parent.getChildren().set(2, c));
@@ -144,26 +150,17 @@ public class ChildrenListTestCase {
 
     @Test
     public void listIterator() throws Exception {
-        SampleNode parent = new SampleNode("parent");
         String c0 = "child0";
         String c1 = "child1";
         String c2 = "child2";
         String c3 = "child3";
-        SampleNode child0 = new SampleNode(c0);
-        SampleNode child1 = new SampleNode(c1);
-        SampleNode child2 = new SampleNode(c2);
-        SampleNode child3 = new SampleNode(c3);
+        SampleNode parent = SampleNode.createTree("parent", c0, c1, c2, c3);
 
         List<SampleNode> children = parent.getChildren();
-        children.add(child0);
-        children.add(child1);
-        children.add(child2);
-        children.add(child3);
-
         StringBuilder buf = new StringBuilder();
         StringBuilder prevIndices = new StringBuilder();
         StringBuilder nextIndices = new StringBuilder();
-        for (ListIterator<SampleNode> i = children.listIterator(children.size()); i.hasPrevious();) {
+        for (ListIterator<SampleNode> i = children.listIterator(children.size()); i.hasPrevious(); ) {
             prevIndices.append(i.previousIndex());
             buf.append(i.previous().getValue());
             nextIndices.append(i.nextIndex());
@@ -175,23 +172,15 @@ public class ChildrenListTestCase {
 
     @Test
     public void listIteratorAdd() throws Exception {
-        SampleNode parent = new SampleNode("parent");
         String c0 = "child0";
         String c1 = "child1";
         String c2 = "child2";
         String c3 = "child3";
-        SampleNode child0 = new SampleNode(c0);
-        SampleNode child1 = new SampleNode(c1);
-        SampleNode child2 = new SampleNode(c2);
-        SampleNode child3 = new SampleNode(c3);
+        SampleNode parent = SampleNode.createTree("parent", c0, c1, c2, c3);
 
         List<SampleNode> children = parent.getChildren();
-        children.add(child0);
-        children.add(child1);
-        children.add(child2);
-        children.add(child3);
 
-        for (ListIterator<SampleNode> i = children.listIterator(0); i.hasNext();) {
+        for (ListIterator<SampleNode> i = children.listIterator(0); i.hasNext(); ) {
             i.add(new SampleNode("c0" + i.nextIndex()));
             i.next();
             i.add(new SampleNode("c1" + i.nextIndex()));
@@ -207,23 +196,14 @@ public class ChildrenListTestCase {
 
     @Test
     public void listIteratorSet() throws Exception {
-        SampleNode parent = new SampleNode("parent");
         String c0 = "child0";
         String c1 = "child1";
         String c2 = "child2";
         String c3 = "child3";
-        SampleNode child0 = new SampleNode(c0);
-        SampleNode child1 = new SampleNode(c1);
-        SampleNode child2 = new SampleNode(c2);
-        SampleNode child3 = new SampleNode(c3);
+        SampleNode parent = SampleNode.createTree("parent", c0, c1, c2, c3);
 
         List<SampleNode> children = parent.getChildren();
-        children.add(child0);
-        children.add(child1);
-        children.add(child2);
-        children.add(child3);
-
-        for (ListIterator<SampleNode> i = children.listIterator(0); i.hasNext();) {
+        for (ListIterator<SampleNode> i = children.listIterator(0); i.hasNext(); ) {
             if (i.next().getValue().equals(c1)) {
                 i.set(new SampleNode("child1bis"));
             }
@@ -242,9 +222,7 @@ public class ChildrenListTestCase {
         SampleNode node = new SampleNode("node");
         p.addChild(node);
 
-        SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(new SampleNode("c1"));
+        SampleNode root = SampleNode.createTree("root", "c0", "c1");
         try {
             root.getChildren().add(node);
             fail("did not fail");
@@ -259,9 +237,7 @@ public class ChildrenListTestCase {
         SampleNode node = new SampleNode("node");
         p.addChild(node);
 
-        SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(new SampleNode("c1"));
+        SampleNode root = SampleNode.createTree("root", "c0", "c1");
         try {
             root.getChildren().add(1, node);
             fail("did not fail");
@@ -282,13 +258,9 @@ public class ChildrenListTestCase {
 
     @Test
     public void removeFailingSetParentKeepsListInSynch() throws Exception {
-        SampleNode node = new SampleNode("node");
+        SampleNode root = SampleNode.createTree("root", "c0", "node", "c1");
+        SampleNode node = root.getChildAt(1);
         node.setCurrent(true);
-
-        SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(node);
-        root.addChild(new SampleNode("c1"));
 
         List<SampleNode> children = root.getChildren();
         try {
@@ -305,13 +277,9 @@ public class ChildrenListTestCase {
 
     @Test
     public void removeIntFaililngSetParentKeepsListInSynch() throws Exception {
-        SampleNode node = new SampleNode("node");
+        SampleNode root = SampleNode.createTree("root", "c0", "node", "c1");
+        SampleNode node = root.getChildAt(1);
         node.setCurrent(true);
-
-        SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(node);
-        root.addChild(new SampleNode("c1"));
 
         List<SampleNode> children = root.getChildren();
         try {
@@ -333,9 +301,7 @@ public class ChildrenListTestCase {
         SampleNode node = new SampleNode("node");
         p.addChild(node);
 
-        SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(new SampleNode("c1"));
+        SampleNode root = SampleNode.createTree("root", "c0", "c1");
 
         try {
             root.getChildren().set(1, node);
@@ -347,14 +313,9 @@ public class ChildrenListTestCase {
 
     @Test
     public void setFailingSetParentKeepsListInSynch2() throws Exception {
-        // cannot remove previous node: current
-        SampleNode node = new SampleNode("node");
+        SampleNode root = SampleNode.createTree("root", "c0", "node", "c1");
+        SampleNode node = root.getChildAt(1);
         node.setCurrent(true);
-
-        SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(node);
-        root.addChild(new SampleNode("c1"));
 
         SampleNode other = new SampleNode("other");
         try {
@@ -380,12 +341,10 @@ public class ChildrenListTestCase {
         SampleNode node = new SampleNode("node");
         p.addChild(node);
 
-        SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(new SampleNode("c1"));
+        SampleNode root = SampleNode.createTree("root", "c0", "c1");
 
         try {
-            for (ListIterator<SampleNode> it = root.getChildren().listIterator(); it.hasNext();) {
+            for (ListIterator<SampleNode> it = root.getChildren().listIterator(); it.hasNext(); ) {
                 if (it.next().getValue().equals("c0")) {
                     it.add(node);
                 }
@@ -398,18 +357,13 @@ public class ChildrenListTestCase {
 
     @Test
     public void listIteratorFailingRemove() throws Exception {
-        // cannot remove previous node: current
-        SampleNode node = new SampleNode("node");
+        SampleNode root = SampleNode.createTree("root", "c0", "node", "c1");
+        SampleNode node = root.getChildAt(1);
         node.setCurrent(true);
-
-        SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(node);
-        root.addChild(new SampleNode("c1"));
 
         SampleNode other = new SampleNode("other");
         try {
-            for (ListIterator<SampleNode> it = root.getChildren().listIterator(); it.hasNext();) {
+            for (ListIterator<SampleNode> it = root.getChildren().listIterator(); it.hasNext(); ) {
                 if (it.next() == node) {
                     it.remove();
                 }
@@ -427,12 +381,10 @@ public class ChildrenListTestCase {
         SampleNode node = new SampleNode("node");
         p.addChild(node);
 
-        SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(new SampleNode("c1"));
+        SampleNode root = SampleNode.createTree("root", "c0", "c1");
 
         try {
-            for (ListIterator<SampleNode> it = root.getChildren().listIterator(); it.hasNext();) {
+            for (ListIterator<SampleNode> it = root.getChildren().listIterator(); it.hasNext(); ) {
                 if (it.next().getValue().equals("c0")) {
                     it.set(node);
                 }
@@ -446,17 +398,13 @@ public class ChildrenListTestCase {
     @Test
     public void listIteratorFailingSet2() throws Exception {
         // cannot remove previous node: current
-        SampleNode node = new SampleNode("node");
+        SampleNode root = SampleNode.createTree("root", "c0", "node", "c1");
+        SampleNode node = root.getChildAt(1);
         node.setCurrent(true);
-
-        SampleNode root = new SampleNode("root");
-        root.addChild(new SampleNode("c0"));
-        root.addChild(node);
-        root.addChild(new SampleNode("c1"));
 
         SampleNode other = new SampleNode("other");
         try {
-            for (ListIterator<SampleNode> it = root.getChildren().listIterator(); it.hasNext();) {
+            for (ListIterator<SampleNode> it = root.getChildren().listIterator(); it.hasNext(); ) {
                 if (it.next() == node) {
                     it.set(other);
                 }

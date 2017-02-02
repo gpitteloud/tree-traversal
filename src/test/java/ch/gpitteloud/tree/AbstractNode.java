@@ -5,6 +5,8 @@ package ch.gpitteloud.tree;
  */
 class AbstractNode<N extends AbstractNode<N>> extends TreeNode<N> {
 
+    private static final long serialVersionUID = 1L;
+
     AbstractNode(Class<N> treeNodeClass) {
         super(treeNodeClass);
     }

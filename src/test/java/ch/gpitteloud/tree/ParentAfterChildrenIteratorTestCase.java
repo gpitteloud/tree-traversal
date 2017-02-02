@@ -51,9 +51,7 @@ public class ParentAfterChildrenIteratorTestCase {
         SampleNode c0 = new SampleNode("0");
         SampleNode c1 = new SampleNode("1");
         SampleNode c2 = new SampleNode("2");
-        root.addChild(c0);
-        root.addChild(c1);
-        root.addChild(c2);
+        root.addAll(c0, c1, c2);
 
         Iterator<SampleNode> i = createIterator(root);
         assertTrue(i.hasNext());
@@ -113,38 +111,29 @@ public class ParentAfterChildrenIteratorTestCase {
         SampleNode c0 = new SampleNode("0");
         SampleNode c1 = new SampleNode("1");
         SampleNode c2 = new SampleNode("2");
-        root.addChild(c0);
-        root.addChild(c1);
-        root.addChild(c2);
+        root.addAll(c0, c1, c2);
 
         SampleNode c00 = new SampleNode("00");
         SampleNode c01 = new SampleNode("01");
         SampleNode c02 = new SampleNode("02");
-        c0.addChild(c00);
-        c0.addChild(c01);
-        c0.addChild(c02);
+        c0.addAll(c00, c01, c02);
 
         SampleNode c10 = new SampleNode("10");
         c1.addChild(c10);
         SampleNode c100 = new SampleNode("100");
         SampleNode c101 = new SampleNode("101");
-        c10.addChild(c100);
-        c10.addChild(c101);
+        c10.addAll(c100, c101);
         SampleNode c1010 = new SampleNode("1010");
         SampleNode c1011 = new SampleNode("1011");
-        c101.addChild(c1010);
-        c101.addChild(c1011);
+        c101.addAll(c1010, c1011);
 
         SampleNode c20 = new SampleNode("20");
         SampleNode c21 = new SampleNode("21");
-        c2.addChild(c20);
-        c2.addChild(c21);
+        c2.addAll(c20, c21);
         SampleNode c210 = new SampleNode("210");
         SampleNode c211 = new SampleNode("211");
         SampleNode c212 = new SampleNode("212");
-        c21.addChild(c210);
-        c21.addChild(c211);
-        c21.addChild(c212);
+        c21.addAll(c210, c211, c212);
         return root;
     }
 
