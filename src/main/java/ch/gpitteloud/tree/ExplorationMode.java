@@ -2,9 +2,7 @@ package ch.gpitteloud.tree;
 
 import ch.gpitteloud.tree.DefaultTreeIterator.Buffer;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.List;
 
 /**
@@ -20,8 +18,8 @@ public enum ExplorationMode {
     BFS {
 
         @Override
-        <N> Buffer<N> createEmptyBuffer() {
-            return new Queue<>();
+        <N> Buffer<N> createInitialBuffer(N initialElement) {
+            return new Queue<>(initialElement);
         }
     },
 
@@ -31,77 +29,82 @@ public enum ExplorationMode {
     DFS {
 
         @Override
-        <N> Buffer<N> createEmptyBuffer() {
-            return new Stack<>();
+        <N> Buffer<N> createInitialBuffer(N initialElement) {
+            return new Stack<>(initialElement);
         }
     };
 
-    abstract <N> Buffer<N> createEmptyBuffer();
+    abstract <N> Buffer<N> createInitialBuffer(N initialElement);
 
-    /**
-     * List-based buffer.
-     */
-    private static abstract class OrderedBuffer<E, L extends List<E>> implements Buffer<E> {
-        final L contents;
+    private abstract static class ArrayDequeBuffer<E> implements Buffer<E> {
+        final ArrayDeque<E> contents = new ArrayDeque<>();
 
-        OrderedBuffer(L contents) {
-            this.contents = contents;
+        ArrayDequeBuffer(final E initialElement) {
+            if (initialElement != null) {
+                contents.add(initialElement);
+            }
         }
 
-        public void push(E element) {
-            contents.add(element);
+        @Override
+        public E removeOne() {
+            return contents.pollFirst();
         }
 
-        public void removeAll(Collection<? extends E> elements) {
-            contents.removeAll(elements);
-        }
-
+        @Override
         public int size() {
             return contents.size();
+        }
+
+        @Override
+        public String toString() {
+            return contents.toString();
         }
     }
 
     /**
      * Buffer for BFS : Queue
      */
-    private static class Queue<E> extends OrderedBuffer<E, LinkedList<E>> {
+    private static class Queue<E> extends ArrayDequeBuffer<E> {
 
-        public Queue() {
-            super(new LinkedList<>());
+        Queue(final E initialElement) {
+            super(initialElement);
         }
 
-        public void pushAll(List<? extends E> elements) {
+        @Override
+        public void addAll(final List<? extends E> elements) {
             contents.addAll(elements);
         }
 
-        public E pop() {
-            return contents.removeFirst();
+        @Override
+        public void removeAll(final int count) {
+            for (int i = 0; i < count; i++) {
+                contents.pollLast();
+            }
         }
-
     }
 
     /**
      * Buffer for DFS : Stack
      */
-    private static class Stack<E> extends OrderedBuffer<E, ArrayList<E>> {
+    private static class Stack<E> extends ArrayDequeBuffer<E> {
 
-        public Stack() {
-            super(new ArrayList<>());
+        Stack(final E initialElement) {
+            super(initialElement);
         }
 
-        public void pushAll(List<? extends E> elements) {
-            int nbNewElements = elements.size();
-            contents.ensureCapacity(contents.size() + nbNewElements);
-            // elements are inserted in reverse order, so that the first popped child is the first element, not the last
-            for (int i = nbNewElements; i > 0; i--) {
-                contents.add(elements.get(i - 1));
+        @Override
+        public void addAll(final List<? extends E> elements) {
+            for (int i = elements.size(); i > 0; i--) {
+                contents.push(elements.get(i - 1));
             }
         }
 
-        public E pop() {
-            return contents.remove(contents.size() - 1);
+        @Override
+        public void removeAll(final int count) {
+            for (int i = 0; i < count; i++) {
+                contents.pollFirst();
+            }
         }
-
     }
 
 }

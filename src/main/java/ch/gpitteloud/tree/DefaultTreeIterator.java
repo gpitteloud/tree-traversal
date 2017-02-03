@@ -1,6 +1,5 @@
 package ch.gpitteloud.tree;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -17,17 +16,36 @@ import java.util.NoSuchElementException;
 public class DefaultTreeIterator<N> implements TreeIterator<N> {
 
     /**
-     * Buffer containing elements as exploration advances. Its implementation depends on the exploration mode.
+     * Buffer containing elements as exploration advances. Depending on BFS or DFS mode, the elements are inserted at
+     * and removed from the end or the beginning of the buffer.
      */
     interface Buffer<E> {
-        void push(E element);
+        /**
+         * Add the children of the current element. Whatever BFS or DFS, the children must be removed in the same
+         * order as was specified here.
+         * @param elements children elements
+         */
+        void addAll(List<? extends E> elements);
 
-        void pushAll(List<? extends E> elements);
+        /**
+         * Get and remove the next element to process
+         * @return next element to process, or null if no more elements to process
+         */
+        E removeOne();
 
-        E pop();
+        /**
+         * Remove all children that were last inserted. Depending on BFS or DFS, these are the last or the first N
+         * elements.<p/>
+         * This happens after the children of an element are skipped (its children were inserted after a call to
+         * next(), and must be removed on a call to skipChildren() occurring later).
+         * @param count the number of children to remove
+         */
+        void removeAll(int count);
 
-        void removeAll(Collection<? extends E> elements);
-
+        /**
+         * buffer size
+         * @return buffer size
+         */
         int size();
     }
 
@@ -43,10 +61,7 @@ public class DefaultTreeIterator<N> implements TreeIterator<N> {
     public DefaultTreeIterator(ExplorationMode mode, N first, ParentChildResolver<N> resolver) {
         assert resolver != null : "Invalid null resolver";
         this.resolver = resolver;
-        buffer = mode.createEmptyBuffer();
-        if (first != null) {
-            buffer.push(first);
-        }
+        buffer = mode.createInitialBuffer(first);
     }
 
     /**
@@ -57,7 +72,7 @@ public class DefaultTreeIterator<N> implements TreeIterator<N> {
      */
     DefaultTreeIterator(ExplorationMode mode, List<N> roots, ParentChildResolver<N> resolver) {
         this(mode, (N) null, resolver);
-        buffer.pushAll(roots);
+        buffer.addAll(roots);
     }
 
     public boolean hasNext() {
@@ -66,8 +81,8 @@ public class DefaultTreeIterator<N> implements TreeIterator<N> {
 
     public N next() {
         if (hasNext()) {
-            current = buffer.pop();
-            buffer.pushAll(resolver.getChildren(current));
+            current = buffer.removeOne();
+            buffer.addAll(resolver.getChildren(current));
             return current;
         }
         throw new NoSuchElementException();
@@ -104,7 +119,7 @@ public class DefaultTreeIterator<N> implements TreeIterator<N> {
     }
 
     private void removeChildrenAndSetCurrentToNull() {
-        buffer.removeAll(resolver.getChildren(current));
+        buffer.removeAll(resolver.getChildren(current).size());
         current = null;
     }
 
