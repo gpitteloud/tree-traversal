@@ -5,7 +5,7 @@ Any data structure that defines a parent-children relation can be adapted to thi
 This includes the following structures:
  * File systems with folder and files
  * XML nodes
- * Classes hierarchies withing reflection modules
+ * Classes hierarchies within reflection modules
  
 Each time such a new data structure needs traversal, a new method that resembles this needs to be rewritten:
 
